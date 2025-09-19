@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <%- include('partials/head') %>
+  <title>Categorias - HealthPlus</title>
+</head>
+<body class="bg-dark text-light">
+  <%- include('partials/navbar') %>
+  <div class="container py-5">
+    <h2 class="text-success mb-4">Categorias de Medicamentos</h2>
+    <div class="row row-cols-2 row-cols-md-3 g-4">
+      <% const categorias = [
+        { nome: 'Analgésicos', icone: '💊' },
+        { nome: 'Antibióticos', icone: '🪠' },
+        { nome: 'Vitaminas', icone: '💪' },
+        { nome: 'Antialérgicos', icone: '🫧' },
+        { nome: 'Antiinflamatórios', icone: '🩹' },
+        { nome: 'Antidepressivos', icone: '🧠' },
+        { nome: 'Medicamentos para Diabetes', icone: '🍭' },
+        { nome: 'Suplementos', icone: '🏋️‍♂️' },
+        { nome: 'Medicamentos para Pressão', icone: '❤️' },
+        { nome: 'Homeopáticos', icone: '🌿' }
+      ]; %>
+      <% categorias.forEach(cat => { %>
+        <div class="col">
+          <div class="card text-dark h-100">
+            <div class="card-body text-center">
+              <span style="font-size: 2rem;"><%= cat.icone %></span>
+              <h5 class="card-title mt-2"><%= cat.nome %></h5>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</body>
+</html>

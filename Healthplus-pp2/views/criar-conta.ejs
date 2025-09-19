@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <%- include('partials/head') %>
+  <title>Criar Conta - HealthPlus</title>
+</head>
+<body class="bg-dark text-light d-flex align-items-center justify-content-center" style="height: 100vh;">
+  <div class="container text-center">
+    <h2 class="text-success mb-4">Criar sua conta</h2>
+    <form class="w-100" style="max-width: 400px; margin: 0 auto;" method="POST" action="/criar-conta">
+      <input type="text" class="form-control mb-3" name="nome" placeholder="Nome completo" required>
+      <input type="email" class="form-control mb-3" name="email" placeholder="Email" required>
+      <input type="password" class="form-control mb-3" name="senha" placeholder="Senha" required>
+      <input type="password" class="form-control mb-3" name="confirmar" placeholder="Confirmar senha" required>
+      <button class="btn btn-success w-100">Cadastrar</button>
+    </form>
+  </div>
+</body>
+</html>

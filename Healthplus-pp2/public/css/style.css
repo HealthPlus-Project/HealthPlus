@@ -1,0 +1,43 @@
+body {
+    background-color: #000;
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+header h1 {
+    font-weight: lighter;
+}
+
+form input {
+    border: 2px solid #28a745;
+}
+
+form input:focus {
+    box-shadow: 0 0 5px #28a745;
+    border-color: #28a745;
+}
+.hero-titulo {
+    font-size: 60px; /* ajuste como quiser: 40px, 70px, etc */
+    color: #08831e;
+    text-align: center;
+    font-weight: lighter;
+    margin-bottom: 5XX0px;
+}
+
+.hero-subtitulo {
+    font-size: 34px; /* ajuste como quiser */
+    color: #08831e;
+    text-align: start;
+}
+.card {
+    border-radius: 15px;
+    transition: transform 0.2s ease;
+  }
+  
+  .card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
+  }
+  

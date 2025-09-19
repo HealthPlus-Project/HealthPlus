@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <%- include('partials/head') %>
+  <title>Lista de Medicamentos</title>
+</head>
+<body>
+  <h1>Medicamentos</h1>
+  <ul>
+    <% medicamentos.forEach(med => { %>
+      <li><strong><%= med.nome %></strong>: <%= med.descricao %> — R$ <%= med.preco.toFixed(2) %></li>
+    <% }) %>
+  </ul>
+</body>
+</html>

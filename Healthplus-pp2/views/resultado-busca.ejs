@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <%- include('partials/head') %>
+  <title>Resultados da Busca - HealthPlus</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main class="container my-4">
+    <h2>Resultados para "<%= termo %>"</h2>
+
+    <% if (medicamentos.length === 0) { %>
+      <p class="text-muted">Nenhum medicamento encontrado.</p>
+    <% } else { %>
+      <div class="row">
+        <% medicamentos.forEach(med => { %>
+          <div class="col-md-4 col-sm-6 mb-4">
+            <div class="card shadow-sm h-100">
+              <div class="card-body">
+                <h5 class="card-title"><%= med.nome %></h5>
+                <p class="card-text text-muted">R$ <%= med.preco.toFixed(2) %></p>
+                <p><%= med.descricao || 'Sem descrição' %></p>
+              </div>
+              <div class="card-footer bg-transparent border-0">
+                <a href="#" class="btn btn-success w-100">Ver detalhes</a>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <a href="/" class="btn btn-outline-secondary mt-3">← Voltar para o início</a>
+  </main>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

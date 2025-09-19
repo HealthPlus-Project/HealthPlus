@@ -1,0 +1,69 @@
+<section class="container py-3">
+  <h2 class="text-success"></h5>
+    <section class="container py-9">
+      <h2 class="text-success text-center">Categorias
+      </h2>
+    
+      
+      <div class="row justify-content-center mb-6">
+        <div class="col-10 col-md-7">
+          <form>  
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Buscar categoria ou medicamento..." aria-label="Pesquisar">
+              <button class="btn btn-success" type="submit">Buscar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  
+
+<section class="container pb-5">
+  <h2 class="text-success">Pontos de entrega HealthPlus perto de voce</h2>
+  <div class="row g-4">
+    <div class="col-md-6 farmacia-card">
+      <div class="card bg-light text-dark h-100 d-flex flex-row align-items-center p-3">
+        <img src="/img/farmacia1.png" class="me-3 rounded" alt="Farmácia 1" style="max-width: 80px;">
+        <div>
+          <h5 class="card-title mb-1">Avenida 13 de maio</h5>
+          <p class="card-text small">Entregas em Fortaleza - até 1h</p>
+          <a href="#" class="btn btn-sm btn-outline-success">ver produtos</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 farmacia-card">
+      <div class="card bg-light text-dark h-100 d-flex flex-row align-items-center p-3">
+        <img src="/img/farmacia2.png" class="me-3 rounded" alt="Farmácia 2" style="max-width: 80px;">
+        <div>
+          <h5 class="card-title mb-1">Rua Icarassu</h5>
+          <p class="card-text small">Descontos em genéricos</p>
+          <a href="#" class="btn btn-sm btn-outline-success">Ver produtos</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="container pb-5">
+  <h2 class="text-success">Promoções</h2>
+  <div class="row g-4">
+    <% const medicamentos = [
+      { nome: 'Paracetamol 500mg', preco: '9,90', precoOriginal: '12,00', img: 'remedio1.png' },
+      { nome: 'Dipirona 500mg', preco: '7,50', precoOriginal: '10,00', img: 'remedio2.png' },
+      { nome: 'Ibuprofeno 400mg', preco: '34,00', precoOriginal: '45,00', img: 'remedio3.png' },
+    ]; %>
+
+    <% medicamentos.forEach(m => { %>
+      <div class="col-md-4 med-card">
+        <div class="card bg-light text-dark h-100">
+          <img src="/img/<%= m.img %>" class="card-img-top" alt="<%= m.nome %>">
+          <div class="card-body">
+            <h5 class="card-title"><%= m.nome %></h5>
+            <p class="card-text">De R$<%= m.precoOriginal %> por <strong class="text-success">R$ <%= m.preco %></strong></p>
+            <a href="#" class="btn btn-success w-100">Adicionar</a>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</section>
