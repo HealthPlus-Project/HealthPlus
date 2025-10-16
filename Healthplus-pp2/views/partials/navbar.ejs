@@ -1,28 +1,69 @@
+
 <nav class="navbar navbar-expand-lg navbar-dark border-bottom border-success sticky-top">
   <div class="container">
     <a class="navbar-brand" href="/">
       <img src="/img/logo.png" alt="HealthPlus" style="max-height: 60px;">
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
+
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto">
+
         <li class="nav-item"><a class="nav-link" href="/entregas">Entregas</a></li>
         <li class="nav-item"><a class="nav-link" href="/categorias">Categorias</a></li>
 
         <% if (user) { %>
-          <li class="nav-item">
-            <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Olá, <%= user.nome %></a>
+          <!-- Carrinho com badge -->
+          <li class="nav-item position-relative">
+            <a class="nav-link" href="/carrinho">
+              🛒 Carrinho
+              <span id="cart-count" class="badge bg-success position-absolute top-0 start-100 translate-middle">0</span>
+            </a>
           </li>
+
+          <!-- Histórico de Compras -->
           <li class="nav-item">
-            <a class="nav-link" href="/logout">Sair</a>
+            <a class="nav-link" href="/historico">📜 Histórico</a>
+          </li>
+
+          <!-- Saudação -->
+          <li class="nav-item">
+            <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+              Olá, <%= user.nome %>
+            </a>
+          </li>
+
+          <!-- Logout -->
+          <li class="nav-item">
+            <a class="nav-link text-danger" href="/logout">Sair</a>
           </li>
         <% } else { %>
           <li class="nav-item"><a class="nav-link" href="/criar-conta">Criar Conta</a></li>
           <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
         <% } %>
+
       </ul>
     </div>
   </div>
 </nav>
+
+<script>
+  // Atualiza o badge do carrinho ao carregar
+  async function updateCartCount() {
+    try {
+      const res = await fetch('/carrinho/count');
+      if (res.ok) {
+        const data = await res.json();
+        const badge = document.querySelector('#cart-count');
+        if (badge) badge.textContent = data.count;
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar contador do carrinho:', err);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', updateCartCount);
+</script>
