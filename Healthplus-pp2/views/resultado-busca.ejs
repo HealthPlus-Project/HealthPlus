@@ -37,7 +37,12 @@
             <div class="card h-100 shadow-sm d-flex flex-column">
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title"><%= med.nome %></h5>
-                <p class="card-text text-muted">R$ <%= med.preco.toFixed(2) %></p>
+
+                <!-- ✅ Linha corrigida -->
+                <p class="card-text text-muted">
+                  R$ <%= Number(med.preco).toFixed(2) %>
+                </p>
+
                 <p class="card-text flex-grow-1"><%= med.descricao || 'Sem descrição' %></p>
 
                 <div class="d-flex align-items-center justify-content-center mb-3" style="height:180px; overflow:hidden;">
