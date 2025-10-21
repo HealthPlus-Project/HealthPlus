@@ -3,6 +3,7 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
+const finalizadoRoutes = require('./routers/finalizado');
 
 const app = express();
 
@@ -208,6 +209,7 @@ app.post('/carrinho/remover', async (req, res) => {
 
 // ---------------- Iniciar servidor ----------------
 connectDB().then(() => {
+  app.use('/finalizado', finalizadoRoutes(usuariosCollection));
   const PORT = 3000;
   app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
 });
