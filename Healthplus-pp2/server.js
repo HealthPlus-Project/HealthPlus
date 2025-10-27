@@ -207,6 +207,25 @@ app.post('/carrinho/remover', async (req, res) => {
   }
 });
 
+// ---------------- Pagamento ----------------
+app.get('/pagamento', async (req, res) => {
+  if (!req.session.usuario) return res.redirect('/login');
+
+  const userId = new ObjectId(req.session.usuario._id);
+  const usuario = await usuariosCollection.findOne({ _id: userId });
+  const carrinho = usuario.carrinho || [];
+  const total = carrinho.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
+
+  res.render('pagamento', { carrinho, total });
+});
+
+app.post('/pagamento/processar', (req, res) => {
+  // Simula processamento de pagamento
+  setTimeout(() => {
+    res.redirect('/finalizado');
+  }, 1000);
+});
+
 // ---------------- Iniciar servidor ----------------
 connectDB().then(() => {
   app.use('/finalizado', finalizadoRoutes(usuariosCollection));
