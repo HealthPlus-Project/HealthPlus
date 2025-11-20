@@ -6,20 +6,158 @@
 </head>
 <body class="bg-dark text-light">
   <%- include('partials/navbar') %>
+
   <div class="container py-5">
     <h2 class="text-success mb-4">Acompanhe seu pedido</h2>
-    <div class="card bg-light text-dark mb-4">
-      <div class="card-body">
-        <h5 class="card-title">Pedido #4231</h5>
-        <p class="card-text">Status: <strong class="text-success">Saiu para entrega</strong></p>
-        <p class="card-text">Farmácia: Drogasil Express</p>
-        <p class="card-text">Entregador: Marcos Silva - (85) 91234-5678</p>
-        <button class="btn btn-outline-success">Ver no mapa</button>
+
+    <% if (!entregas || entregas.length === 0) { %>
+      <div class="alert alert-secondary text-center">
+        Você não tem entregas ativas no momento.
       </div>
-    </div>
-    <div class="alert alert-secondary text-center">
-      Seus pedidos mais antigos aparecerão aqui.
-    </div>
+    <% } else { %>
+      <div class="row g-4">
+
+    <% entregas.forEach((e, idx) => { 
+    const eta = e.etaMinutes || 0;
+    const nome = e.entregador?.Nome || e.entregador?.nome || '—';
+    const veic = e.entregador?.Veiculo || e.entregador?.veiculo || '—';
+    const status = e.status || 'pendente';
+    const created = new Date(e.criadoEm).toLocaleString('pt-BR');
+    const itens = Array.isArray(e.pedido) ? e.pedido : [];
+    %>
+
+
+          <div class="col-md-6">
+            <div class="card bg-light text-dark">
+              <div class="card-body">
+
+                <h5 class="card-title">
+                  Pedido — <small class="text-muted"><%= created %></small>
+                </h5>
+
+                <p class="card-text">
+                  Status:
+                  <strong class="text-success" id="status-<%= idx %>"><%= status %></strong>
+                </p>
+
+                <p class="card-text">
+                  Entregador:
+                  <strong id="entregador-<%= idx %>"><%= nome %></strong>
+                  —
+                  <span id="veiculo-<%= idx %>"><%= veic %></span>
+                </p>
+
+                <div class="mb-2">
+                  <div class="progress" style="height:18px;">
+                    <div id="bar-<%= idx %>" class="progress-bar" role="progressbar" style="width:0%">0%</div>
+                  </div>
+                </div>
+
+                <p class="mb-0">Tempo estimado: <span id="eta-text-<%= idx %>"><%= eta %></span> min</p>
+
+                <div class="mt-3 d-flex gap-2">
+                  <button class="btn btn-outline-success" onclick="verMapa(<%= idx %>)">Ver no mapa</button>
+                  <button class="btn btn-secondary" onclick="mostrarItens(<%= idx %>)">Ver itens</button>
+                </div>
+
+                <div class="mt-3 d-none" id="itens-<%= idx %>">
+
+                  <% if (itens.length === 0) { %>
+                    <div class="alert alert-warning p-2">
+                      Nenhum item encontrado neste pedido.
+                    </div>
+                  <% } else { %>
+                    <ul class="list-group">
+                      <% itens.forEach(it => { %>
+                        <li class="list-group-item d-flex justify-content-between">
+                          <span><%= it.nome %> x<%= it.quantidade %></span>
+                          <span>R$ <%= (it.preco * it.quantidade).toFixed(2) %></span>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  <% } %>
+
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        <% }) %>
+      </div>
+    <% } %>
+
   </div>
+
+<script>
+  const entregas = <%- JSON.stringify(entregas) %>;
+  const progressoLocal = JSON.parse(localStorage.getItem("progressoEntregas") || "{}");
+
+  entregas.forEach((entrega, idx) => {
+    const bar = document.getElementById(`bar-${idx}`);
+    const etaText = document.getElementById(`eta-text-${idx}`);
+    const statusEl = document.getElementById(`status-${idx}`);
+
+    let progresso = progressoLocal[entrega._id] || 0;
+
+    bar.style.width = progresso + "%";
+    bar.textContent = progresso + "%";
+
+    let eta = entrega.etaMinutes;
+
+    if (!progressoLocal[entrega._id]) {
+      progressoLocal[entrega._id] = 0;
+      localStorage.setItem("progressoEntregas", JSON.stringify(progressoLocal));
+    }
+
+    const interval = setInterval(() => {
+      if (progresso >= 100) {
+        clearInterval(interval);
+        return;
+      }
+
+      progresso++;
+      progressoLocal[entrega._id] = progresso;
+      localStorage.setItem("progressoEntregas", JSON.stringify(progressoLocal));
+
+      bar.style.width = progresso + "%";
+      bar.textContent = progresso + "%";
+
+      if (eta > 0 && progresso % 10 === 0) {
+        eta--;
+        etaText.textContent = eta;
+      }
+
+      if (progresso >= 100) {
+
+        bar.classList.add("bg-success");
+        statusEl.textContent = "entregue";
+
+        fetch(`/entregas/finalizar/${entrega._id}`, { method: "POST" })
+          .then(() => {
+            setTimeout(() => {
+              const card = bar.closest(".col-md-6");
+              if (card) card.remove();
+
+              delete progressoLocal[entrega._id];
+              localStorage.setItem("progressoEntregas", JSON.stringify(progressoLocal));
+            }, 2000);
+          });
+
+        clearInterval(interval);
+      }
+
+    }, 100);
+  });
+
+  function mostrarItens(i) {
+    document.getElementById(`itens-${i}`).classList.toggle("d-none");
+  }
+
+  function verMapa(i) {
+    alert("Função de mapa ainda não implementada.");
+  }
+</script>
+
 </body>
 </html>

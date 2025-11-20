@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <%- include('partials/head') %>
+  <title>Compra Finalizada - HealthPlus</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main class="container my-4">
+    <h2>✅ Compra finalizada com sucesso!</h2>
+    <p>Resumo do pedido:</p>
+
+    <ul class="list-group mb-3">
+      <% pedido.itens.forEach(item => { %>
+        <li class="list-group-item d-flex justify-content-between">
+          <span><%= item.nome %> (x<%= item.quantidade %>)</span>
+          <span>R$ <%= (item.preco * item.quantidade).toFixed(2) %></span>
+        </li>
+      <% }) %>
+    </ul>
+
+    <h4>Total pago: R$ <%= pedido.total.toFixed(2) %></h4>
+    <a href="/" class="btn btn-primary mt-3">Voltar ao início</a>
+  </main>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

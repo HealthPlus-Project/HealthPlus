@@ -113,10 +113,15 @@
     }
 
     function showPosition(position) {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      document.getElementById("location").innerHTML = `Latitude: ${lat}, Longitude: ${lon}`;
-    }
+  const lat = position.coords.latitude;
+  const lon = position.coords.longitude;
+
+  document.getElementById("location").innerHTML = `Latitude: ${lat}, Longitude: ${lon}`;
+
+  localStorage.setItem("user_lat", lat);
+  localStorage.setItem("user_lon", lon);
+}
+
 
     function showError(error) {
       switch(error.code) {

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <%- include('partials/head') %>
+  <title>Histórico de Compras - HealthPlus</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main class="container my-4">
+    <h2>🧾 Histórico de Compras</h2>
+
+    <% if (historico.length === 0) { %>
+      <p class="text-muted">Você ainda não fez nenhuma compra.</p>
+    <% } else { %>
+      <% historico.slice().reverse().forEach(pedido => { %>
+        <div class="card mb-4 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Compra em <%= new Date(pedido.data).toLocaleString('pt-BR') %></h5>
+            <ul class="list-group mb-3">
+              <% pedido.itens.forEach(item => { %>
+                <li class="list-group-item d-flex justify-content-between">
+                  <span><%= item.nome %> (x<%= item.quantidade %>)</span>
+                  <span>R$ <%= (item.preco * item.quantidade).toFixed(2) %></span>
+                </li>
+              <% }) %>
+            </ul>
+            <h6>Total: R$ <%= pedido.total.toFixed(2) %></h6>
+          </div>
+        </div>
+      <% }) %>
+    <% } %>
+
+    <a href="/" class="btn btn-outline-secondary mt-3">← Voltar para o início</a>
+  </main>
+
+  <%- include('partials/footer') %>
+</body>
+</html>
