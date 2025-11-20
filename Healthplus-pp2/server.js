@@ -10,23 +10,24 @@ const app = express();
 const uri = 'mongodb+srv://samuka:bananza@medicamentos.kdgfcmm.mongodb.net/?retryWrites=true&w=majority';
 const client = new MongoClient(uri);
 
-let db, usuariosCollection, medicamentosCollection;
+let db, usuariosCollection, medicamentosCollection, entregadoresCollection, entregasCollection;
 
 async function connectDB() {
   try {
     await client.connect();
-    console.log('✅ Conectado ao MongoDB Atlas');
+    console.log('Conectado ao MongoDB Atlas');
 
     db = client.db('healthplus');
     usuariosCollection = db.collection('usuarios');
     medicamentosCollection = db.collection('medicamentos');
+    entregadoresCollection = db.collection('entregadores');
+    entregasCollection = db.collection('entregas');
   } catch (error) {
-    console.error('❌ Erro ao conectar com MongoDB:', error.message);
+    console.error('Erro ao conectar com MongoDB:', error.message);
     process.exit(1);
   }
 }
 
-// Configurações do Express
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -44,14 +45,70 @@ app.use((req, res, next) => {
   next();
 });
 
-// ---------------- Rotas principais ----------------
 app.get('/', (req, res) => res.render('index'));
-app.get('/entregas', (req, res) => res.render('entregas'));
+
+// ==================== LISTAR ENTREGAS ATIVAS ====================
+app.get('/entregas', async (req, res) => {
+  if (!req.session.usuario) return res.redirect('/login');
+
+  try {
+    const userId = new ObjectId(req.session.usuario._id);
+
+    // pegar apenas entregas não concluídas
+    const raw = await entregasCollection.find({
+      userId,
+      status: { $ne: 'entregue' }
+    })
+    .sort({ criadoEm: -1 })
+    .toArray();
+
+    const entregas = raw.map(e => ({
+      _id: e._id.toString(),                 // ← AGORA O FRONT PEGA CERTO
+      pedido: e.pedido,
+      entregador: e.entregador,
+      status: e.status,
+      etaMinutes: Number(e.etaMinutes),      // ← CONVERTE PARA NÚMERO!
+      criadoEm: e.criadoEm,
+      coords: e.coords || null,
+      completedAt: e.completedAt || null
+    }));
+
+    res.render('entregas', { entregas });
+
+  } catch (err) {
+    console.error('Erro ao buscar entregas:', err);
+    res.status(500).send('Erro ao carregar entregas');
+  }
+});
+
+
+// ==================== FINALIZAR ENTREGA ====================
+app.post('/entregas/finalizar/:id', async (req, res) => {
+  try {
+    const id = new ObjectId(req.params.id);
+
+    await entregasCollection.updateOne(
+      { _id: id },
+      {
+        $set: {
+          status: 'entregue',
+          completedAt: new Date()
+        }
+      }
+    );
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Erro ao finalizar entrega:', err);
+    res.sendStatus(500);
+  }
+});
+
 app.get('/categorias', (req, res) => res.render('categorias'));
 app.get('/criar-conta', (req, res) => res.render('criar-conta'));
 app.get('/login', (req, res) => res.render('login'));
 
-// ---------------- Cadastro/Login ----------------
+// ==================== CRIAR CONTA ====================
 app.post('/criar-conta', async (req, res) => {
   const { nome, email, senha, confirmar } = req.body;
   if (senha !== confirmar) return res.send('As senhas não conferem!');
@@ -71,6 +128,7 @@ app.post('/criar-conta', async (req, res) => {
   }
 });
 
+// ==================== LOGIN ====================
 app.post('/login', async (req, res) => {
   const { email, senha } = req.body;
   try {
@@ -94,7 +152,7 @@ app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/'));
 });
 
-// ---------------- Busca ----------------
+// ==================== BUSCA ====================
 app.get('/resultado-busca', async (req, res) => {
   const termo = req.query.termo || '';
   if (!termo) return res.render('resultado-busca', { medicamentos: [], termo, carrinho: [] });
@@ -110,7 +168,20 @@ app.get('/resultado-busca', async (req, res) => {
   }
 });
 
-// ---------------- Carrinho ----------------
+app.get('/pagamento', (req, res) => {
+  if (!req.session.usuario) return res.redirect('/login');
+
+  const carrinho = req.session.usuario.carrinho || [];
+  const total = carrinho.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
+
+  res.render('pagamento', {
+    carrinho,
+    total,
+    usuario: req.session.usuario
+  });
+});
+
+// ==================== CONTAGEM DO CARRINHO ====================
 app.get('/carrinho/count', async (req, res) => {
   if (!req.session.usuario) return res.json({ count: 0 });
   try {
@@ -123,15 +194,14 @@ app.get('/carrinho/count', async (req, res) => {
   }
 });
 
+// ==================== CARRINHO ====================
 app.get('/carrinho', async (req, res) => {
   if (!req.session.usuario) return res.redirect('/login');
 
   try {
     const user = await usuariosCollection.findOne({ _id: new ObjectId(req.session.usuario._id) });
     const carrinho = user.carrinho || [];
-
     const total = carrinho.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
-
     res.render('carrinho', { carrinho, total });
   } catch (err) {
     console.error(err);
@@ -139,7 +209,7 @@ app.get('/carrinho', async (req, res) => {
   }
 });
 
-// ---------------- Adicionar ao carrinho ----------------
+// ==================== ADICIONAR AO CARRINHO ====================
 app.post('/carrinho/adicionar', async (req, res) => {
   const { medicamentoId, nome, preco } = req.body;
   if (!req.session.usuario) return res.status(401).send('Faça login primeiro');
@@ -148,23 +218,31 @@ app.post('/carrinho/adicionar', async (req, res) => {
     const userId = new ObjectId(req.session.usuario._id);
     const usuario = await usuariosCollection.findOne({ _id: userId });
 
-    const itemExistente = usuario.carrinho?.find(item => item.medicamentoId === medicamentoId);
-    if (itemExistente) {
+    const existente = usuario.carrinho?.find(i => i.medicamentoId === medicamentoId);
+
+    if (existente) {
       await usuariosCollection.updateOne(
         { _id: userId, 'carrinho.medicamentoId': medicamentoId },
         { $inc: { 'carrinho.$.quantidade': 1 } }
       );
     } else {
-      const novoItem = { medicamentoId, nome, preco: parseFloat(preco), quantidade: 1 };
       await usuariosCollection.updateOne(
         { _id: userId },
-        { $push: { carrinho: novoItem } }
+        {
+          $push: {
+            carrinho: {
+              medicamentoId,
+              nome,
+              preco: parseFloat(preco),
+              quantidade: 1
+            }
+          }
+        }
       );
     }
 
-    const usuarioAtualizado = await usuariosCollection.findOne({ _id: userId });
-    req.session.usuario.carrinho = usuarioAtualizado.carrinho;
-
+    const atualizado = await usuariosCollection.findOne({ _id: userId });
+    req.session.usuario.carrinho = atualizado.carrinho;
     res.sendStatus(200);
   } catch (err) {
     console.error(err);
@@ -172,7 +250,7 @@ app.post('/carrinho/adicionar', async (req, res) => {
   }
 });
 
-// ---------------- Remover do carrinho (decrementa 1 unidade) ----------------
+// ==================== REMOVER DO CARRINHO ====================
 app.post('/carrinho/remover', async (req, res) => {
   const { medicamentoId } = req.body;
   if (!req.session.usuario) return res.status(401).send('Faça login primeiro');
@@ -197,9 +275,8 @@ app.post('/carrinho/remover', async (req, res) => {
       );
     }
 
-    const usuarioAtualizado = await usuariosCollection.findOne({ _id: userId });
-    req.session.usuario.carrinho = usuarioAtualizado.carrinho;
-
+   const atualizado = await usuariosCollection.findOne({ _id: userId });
+    req.session.usuario.carrinho = atualizado.carrinho;
     res.sendStatus(200);
   } catch (err) {
     console.error(err);
@@ -207,28 +284,65 @@ app.post('/carrinho/remover', async (req, res) => {
   }
 });
 
-// ---------------- Pagamento ----------------
-app.get('/pagamento', async (req, res) => {
+// ==================== PROCESSAR PAGAMENTO ====================
+app.post('/pagamento/processar', async (req, res) => {
   if (!req.session.usuario) return res.redirect('/login');
 
-  const userId = new ObjectId(req.session.usuario._id);
-  const usuario = await usuariosCollection.findOne({ _id: userId });
-  const carrinho = usuario.carrinho || [];
-  const total = carrinho.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
+  try {
+    const userId = new ObjectId(req.session.usuario._id);
 
-  res.render('pagamento', { carrinho, total });
+    // Carrinho
+    const carrinho = req.session.usuario.carrinho || [];
+    if (carrinho.length === 0) {
+      return res.send("Carrinho vazio. Nada para pagar.");
+    }
+
+    const entregadores = await entregadoresCollection.find().toArray();
+    const entregadorBruto = entregadores.length > 0
+      ? entregadores[Math.floor(Math.random() * entregadores.length)]
+      : { nome: "Entregador Padrão", veiculo: "Moto" };
+
+  
+    const entregador = {
+      nome: entregadorBruto.nome || entregadorBruto.Nome || "—",
+      veiculo: entregadorBruto.veiculo || entregadorBruto.Veiculo || "—"
+    };
+
+    const eta = Math.floor(Math.random() * 15) + 5;
+
+    await entregasCollection.insertOne({
+      userId,
+      pedido: carrinho,
+      entregador,
+      status: "a_caminho",
+      etaMinutes: eta,
+      criadoEm: new Date()
+    });
+
+    await usuariosCollection.updateOne(
+      { _id: userId },
+      { $set: { carrinho: [] } }
+    );
+
+    req.session.usuario.carrinho = [];
+
+    res.redirect('/entregas');
+
+  } catch (err) {
+    console.error("Erro ao processar pagamento:", err);
+    res.status(500).send("Erro ao processar pagamento.");
+  }
 });
 
-app.post('/pagamento/processar', (req, res) => {
-  // Simula processamento de pagamento
-  setTimeout(() => {
-    res.redirect('/finalizado');
-  }, 1000);
-});
 
-// ---------------- Iniciar servidor ----------------
+
+// ==================== ROTAS DE FINALIZADO ====================
+app.use('/', finalizadoRoutes);
+
+// ==================== INICIAR SERVIDOR ====================
 connectDB().then(() => {
-  app.use('/finalizado', finalizadoRoutes(usuariosCollection));
-  const PORT = 3000;
-  app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
+  const port = 3000;
+  app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
+  });
 });
