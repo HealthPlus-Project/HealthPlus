@@ -259,6 +259,7 @@ app.post('/carrinho/remover', async (req, res) => {
     const userId = new ObjectId(req.session.usuario._id);
     const usuario = await usuariosCollection.findOne({ _id: userId });
 
+    // procura o item correto, convertendo ids para string
     const item = usuario.carrinho.find(i => i.medicamentoId.toString() === medicamentoId.toString());
     if (!item) return res.sendStatus(404);
 
