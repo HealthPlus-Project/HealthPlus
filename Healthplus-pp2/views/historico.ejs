@@ -17,11 +17,16 @@
         <div class="card mb-4 shadow-sm">
           <div class="card-body">
             <h5 class="card-title">Compra em <%= new Date(pedido.data).toLocaleString('pt-BR') %></h5>
+            <p class="text-muted mb-2">Entregador: <%= pedido.entregador && pedido.entregador.nome ? pedido.entregador.nome : '—' %> · Veículo: <%= pedido.entregador && pedido.entregador.veiculo ? pedido.entregador.veiculo : '—' %></p>
+
             <ul class="list-group mb-3">
               <% pedido.itens.forEach(item => { %>
                 <li class="list-group-item d-flex justify-content-between">
-                  <span><%= item.nome %> (x<%= item.quantidade %>)</span>
-                  <span>R$ <%= (item.preco * item.quantidade).toFixed(2) %></span>
+                  <div>
+                    <strong><%= item.nome %></strong>
+                    <div class="text-muted small">Unitário: R$ <%= Number(item.preco).toFixed(2) %> · Quantidade: <%= item.quantidade %></div>
+                  </div>
+                  <div>R$ <%= (Number(item.preco) * item.quantidade).toFixed(2) %></div>
                 </li>
               <% }) %>
             </ul>

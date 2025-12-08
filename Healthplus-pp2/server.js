@@ -181,6 +181,42 @@ app.get('/pagamento', (req, res) => {
   });
 });
 
+// ==================== HISTÓRICO DE COMPRAS ====================
+app.get('/historico', async (req, res) => {
+  if (!req.session.usuario) return res.redirect('/login');
+
+  try {
+    const userId = new ObjectId(req.session.usuario._id);
+
+    // Busca somente entregas concluídas (padrão: status 'entregue')
+    const raw = await entregasCollection.find({ userId, status: 'entregue' })
+      .sort({ criadoEm: -1 })
+      .toArray();
+
+    const historico = raw.map(e => {
+      const itens = (e.pedido || []).map(i => ({
+        nome: i.nome,
+        quantidade: i.quantidade || 1,
+        preco: Number(i.preco || 0)
+      }));
+
+      const total = itens.reduce((acc, it) => acc + (it.preco * it.quantidade), 0);
+
+      return {
+        data: e.completedAt || e.criadoEm,
+        itens,
+        total,
+        entregador: e.entregador || { nome: '—', veiculo: '—' }
+      };
+    });
+
+    res.render('historico', { historico });
+  } catch (err) {
+    console.error('Erro ao buscar histórico:', err);
+    res.status(500).send('Erro ao carregar histórico');
+  }
+});
+
 // ==================== CONTAGEM DO CARRINHO ====================
 app.get('/carrinho/count', async (req, res) => {
   if (!req.session.usuario) return res.json({ count: 0 });
