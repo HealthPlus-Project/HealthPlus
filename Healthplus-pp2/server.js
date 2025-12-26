@@ -254,7 +254,7 @@ app.get('/carrinho', async (req, res) => {
       }, {});
     }
 
-    // Anexa a propriedade `imagem` em cada item do carrinho (fallback para placeholder)
+    // Anexa a propriedade `imagem` em cada item do carrinho
     carrinho = carrinho.map(item => ({
       ...item,
       imagem: imagensMap[item.medicamentoId] || '/img/remedio-placeholder.png'
