@@ -236,7 +236,30 @@ app.get('/carrinho', async (req, res) => {
 
   try {
     const user = await usuariosCollection.findOne({ _id: new ObjectId(req.session.usuario._id) });
-    const carrinho = user.carrinho || [];
+    let carrinho = user.carrinho || [];
+
+    // Buscar imagens dos medicamentos que estão no carrinho
+    const ids = carrinho
+      .map(i => {
+        try { return new ObjectId(i.medicamentoId); } catch (e) { return null; }
+      })
+      .filter(Boolean);
+
+    let imagensMap = {};
+    if (ids.length > 0) {
+      const meds = await medicamentosCollection.find({ _id: { $in: ids } }).toArray();
+      imagensMap = meds.reduce((acc, m) => {
+        acc[m._id.toString()] = m.imagem || '/img/remedio-placeholder.png';
+        return acc;
+      }, {});
+    }
+
+    // Anexa a propriedade `imagem` em cada item do carrinho
+    carrinho = carrinho.map(item => ({
+      ...item,
+      imagem: imagensMap[item.medicamentoId] || '/img/remedio-placeholder.png'
+    }));
+
     const total = carrinho.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
     res.render('carrinho', { carrinho, total });
   } catch (err) {
