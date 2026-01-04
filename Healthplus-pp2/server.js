@@ -3,6 +3,7 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
+const bcrypt = require('bcrypt'); // ← IMPORTADO
 const finalizadoRoutes = require('./routers/finalizado');
 
 const app = express();
@@ -54,7 +55,6 @@ app.get('/entregas', async (req, res) => {
   try {
     const userId = new ObjectId(req.session.usuario._id);
 
-    // pegar apenas entregas não concluídas
     const raw = await entregasCollection.find({
       userId,
       status: { $ne: 'entregue' }
@@ -63,11 +63,11 @@ app.get('/entregas', async (req, res) => {
     .toArray();
 
     const entregas = raw.map(e => ({
-      _id: e._id.toString(),                 // ← AGORA O FRONT PEGA CERTO
+      _id: e._id.toString(),
       pedido: e.pedido,
       entregador: e.entregador,
       status: e.status,
-      etaMinutes: Number(e.etaMinutes),      // ← CONVERTE PARA NÚMERO!
+      etaMinutes: Number(e.etaMinutes),
       criadoEm: e.criadoEm,
       coords: e.coords || null,
       completedAt: e.completedAt || null
@@ -80,7 +80,6 @@ app.get('/entregas', async (req, res) => {
     res.status(500).send('Erro ao carregar entregas');
   }
 });
-
 
 // ==================== FINALIZAR ENTREGA ====================
 app.post('/entregas/finalizar/:id', async (req, res) => {
@@ -108,7 +107,7 @@ app.get('/categorias', (req, res) => res.render('categorias'));
 app.get('/criar-conta', (req, res) => res.render('criar-conta'));
 app.get('/login', (req, res) => res.render('login'));
 
-// ==================== CRIAR CONTA ====================
+// ==================== CRIAR CONTA COM BCRYPT ====================
 app.post('/criar-conta', async (req, res) => {
   const { nome, email, senha, confirmar } = req.body;
   if (senha !== confirmar) return res.send('As senhas não conferem!');
@@ -117,7 +116,17 @@ app.post('/criar-conta', async (req, res) => {
     const existente = await usuariosCollection.findOne({ email });
     if (existente) return res.send('Usuário já existe!');
 
-    const novoUsuario = { nome, email, senha, carrinho: [], historico: [] };
+    const SALT_ROUNDS = 10;
+    const senhaHash = await bcrypt.hash(senha, SALT_ROUNDS);
+
+    const novoUsuario = { 
+      nome, 
+      email, 
+      senha: senhaHash, 
+      carrinho: [], 
+      historico: [] 
+    };
+
     const resultado = await usuariosCollection.insertOne(novoUsuario);
 
     req.session.usuario = { _id: resultado.insertedId.toString(), nome, email, carrinho: [] };
@@ -128,12 +137,15 @@ app.post('/criar-conta', async (req, res) => {
   }
 });
 
-// ==================== LOGIN ====================
+// ==================== LOGIN COM BCRYPT ====================
 app.post('/login', async (req, res) => {
   const { email, senha } = req.body;
   try {
-    const user = await usuariosCollection.findOne({ email, senha });
+    const user = await usuariosCollection.findOne({ email });
     if (!user) return res.send('Credenciais inválidas');
+
+    const senhaCorreta = await bcrypt.compare(senha, user.senha);
+    if (!senhaCorreta) return res.send('Credenciais inválidas');
 
     req.session.usuario = {
       _id: user._id.toString(),
@@ -188,7 +200,6 @@ app.get('/historico', async (req, res) => {
   try {
     const userId = new ObjectId(req.session.usuario._id);
 
-    // Busca somente entregas concluídas (padrão: status 'entregue')
     const raw = await entregasCollection.find({ userId, status: 'entregue' })
       .sort({ criadoEm: -1 })
       .toArray();
@@ -238,7 +249,6 @@ app.get('/carrinho', async (req, res) => {
     const user = await usuariosCollection.findOne({ _id: new ObjectId(req.session.usuario._id) });
     let carrinho = user.carrinho || [];
 
-    // Buscar imagens dos medicamentos que estão no carrinho
     const ids = carrinho
       .map(i => {
         try { return new ObjectId(i.medicamentoId); } catch (e) { return null; }
@@ -254,7 +264,6 @@ app.get('/carrinho', async (req, res) => {
       }, {});
     }
 
-    // Anexa a propriedade `imagem` em cada item do carrinho
     carrinho = carrinho.map(item => ({
       ...item,
       imagem: imagensMap[item.medicamentoId] || '/img/remedio-placeholder.png'
@@ -318,7 +327,6 @@ app.post('/carrinho/remover', async (req, res) => {
     const userId = new ObjectId(req.session.usuario._id);
     const usuario = await usuariosCollection.findOne({ _id: userId });
 
-    // procura o item correto, convertendo ids para string
     const item = usuario.carrinho.find(i => i.medicamentoId.toString() === medicamentoId.toString());
     if (!item) return res.sendStatus(404);
 
@@ -334,7 +342,7 @@ app.post('/carrinho/remover', async (req, res) => {
       );
     }
 
-   const atualizado = await usuariosCollection.findOne({ _id: userId });
+    const atualizado = await usuariosCollection.findOne({ _id: userId });
     req.session.usuario.carrinho = atualizado.carrinho;
     res.sendStatus(200);
   } catch (err) {
@@ -349,19 +357,14 @@ app.post('/pagamento/processar', async (req, res) => {
 
   try {
     const userId = new ObjectId(req.session.usuario._id);
-
-    // Carrinho
     const carrinho = req.session.usuario.carrinho || [];
-    if (carrinho.length === 0) {
-      return res.send("Carrinho vazio. Nada para pagar.");
-    }
+    if (carrinho.length === 0) return res.send("Carrinho vazio. Nada para pagar.");
 
     const entregadores = await entregadoresCollection.find().toArray();
     const entregadorBruto = entregadores.length > 0
       ? entregadores[Math.floor(Math.random() * entregadores.length)]
       : { nome: "Entregador Padrão", veiculo: "Moto" };
 
-  
     const entregador = {
       nome: entregadorBruto.nome || entregadorBruto.Nome || "—",
       veiculo: entregadorBruto.veiculo || entregadorBruto.Veiculo || "—"
@@ -384,18 +387,13 @@ app.post('/pagamento/processar', async (req, res) => {
     );
 
     req.session.usuario.carrinho = [];
-
     res.redirect('/entregas');
-
   } catch (err) {
     console.error("Erro ao processar pagamento:", err);
     res.status(500).send("Erro ao processar pagamento.");
   }
 });
 
-
-
-// ==================== ROTAS DE FINALIZADO ====================
 app.use('/', finalizadoRoutes);
 
 // ==================== INICIAR SERVIDOR ====================
